@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, Box, ChevronRight, Cpu, Layers3, Sparkles, Wand2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { api } from './lib/api';
+import { ApiError, api } from './lib/api';
 import { ControlBar } from './components/ControlBar';
 import { EditorPanel } from './components/EditorPanel';
 import { RegistersPanel } from './components/RegistersPanel';
@@ -11,8 +11,7 @@ import { ConsolePanel } from './components/ConsolePanel';
 import { SampleDrawer } from './components/SampleDrawer';
 import { EmotionEye } from './components/EmotionEye';
 import { getCurrentStep, useIdeStore } from './hooks/useIdeStore';
-import type { RegisterState } from './lib/types';
-
+import type { AssembleResponse, RegisterState, RunResponse } from './lib/types';
 type EyeMode = 'idle' | 'assembling' | 'running' | 'success' | 'error';
 type ProcessPhase = 'assemble' | 'run' | null;
 type SpotlightTarget = 'editor' | 'artifacts' | 'runtime' | null;
@@ -86,65 +85,115 @@ export default function App() {
   }
 
   async function handleAssemble() {
-    try {
-      setBusy(true);
-      setPhase('assemble');
-      setEyeMode('assembling');
-      clearTerminal();
-      pushTerminal('Assembling source with the real SIMPLEX engine...');
-      const result = await api.assemble(code, filename);
-      setAssembleResult(result);
+  try {
+    setBusy(true);
+    setPhase('assemble');
+    setEyeMode('assembling');
+    clearTerminal();
+    pushTerminal('Assembling source with the real SIMPLEX engine...');
+
+    const result = await api.assemble(code, filename);
+    setAssembleResult(result);
+    setRunResult(null);
+    setActiveArtifact(result.artifacts.log ? 'log' : Object.keys(result.artifacts)[0] ?? 'log');
+
+    pushTerminal(result.message);
+    if (result.stderr) pushTerminal(result.stderr);
+    if (result.stdout) pushTerminal(result.stdout);
+
+    setCelebrationText(result.ok ? 'Assembly complete · Artifact deck unlocked' : 'Assembly finished with issues');
+    setEyeMode(result.ok ? 'success' : 'error');
+    focusSection('artifacts');
+  } catch (error) {
+    const err = error as ApiError;
+    const payload = (err.payload ?? {}) as Partial<AssembleResponse>;
+
+    if (payload && typeof payload === 'object') {
       setRunResult(null);
-      setActiveArtifact(result.artifacts.log ? 'log' : Object.keys(result.artifacts)[0] ?? 'log');
-      pushTerminal(result.message);
-      if (result.stderr) pushTerminal(result.stderr);
-      if (result.stdout) pushTerminal(result.stdout);
-      setCelebrationText(result.ok ? 'Assembly complete · Artifact deck unlocked' : 'Assembly finished with issues');
-      setEyeMode(result.ok ? 'success' : 'error');
-      focusSection('artifacts');
-    } catch (error) {
-      pushTerminal(`Assemble failed: ${(error as Error).message}`);
-      pushTerminal('Check http://localhost:8787/api/health for engine build diagnostics if this is your first run.');
-      setCelebrationText('Assembly interrupted');
-      setEyeMode('error');
-      focusSection('artifacts');
-    } finally {
-      setBusy(false);
-      setPhase(null);
-      setTimeout(() => setEyeMode('idle'), 900);
+      setAssembleResult(payload as AssembleResponse);
+
+      if (payload.artifacts?.log) {
+        setActiveArtifact('log');
+      } else if (payload.artifacts?.lst) {
+        setActiveArtifact('lst');
+      } else if (payload.artifacts && Object.keys(payload.artifacts).length > 0) {
+        setActiveArtifact(Object.keys(payload.artifacts)[0]);
+      }
     }
+
+    pushTerminal(`Assemble failed: ${payload.message || err.message}`);
+    if (payload.stdout) pushTerminal(payload.stdout);
+    if (payload.stderr) pushTerminal(payload.stderr);
+    if (payload.diagnostics && payload.diagnostics !== payload.stderr) {
+      pushTerminal(payload.diagnostics);
+    }
+
+    setCelebrationText('Assembly interrupted');
+    setEyeMode('error');
+    focusSection('artifacts');
+  } finally {
+    setBusy(false);
+    setPhase(null);
+    setTimeout(() => setEyeMode('idle'), 900);
   }
+}
 
   async function handleRun() {
-    try {
-      setBusy(true);
-      setPhase('run');
-      setEyeMode('running');
-      clearTerminal();
-      pushTerminal('Running assemble + emulate pipeline...');
-      const result = await api.run(code, filename);
+  try {
+    setBusy(true);
+    setPhase('run');
+    setEyeMode('running');
+    clearTerminal();
+    pushTerminal('Running assemble + emulate pipeline...');
+
+    const result = await api.run(code, filename);
+    setAssembleResult(null);
+    setRunResult(result);
+    setActiveArtifact(result.artifacts.trace ? 'trace' : Object.keys(result.artifacts)[0] ?? 'trace');
+
+    pushTerminal(result.message);
+    pushTerminal(`Halt reason: ${result.parsed.haltReason}`);
+    if (result.stderr) pushTerminal(result.stderr);
+    if (result.stdout) pushTerminal(result.stdout);
+
+    setCelebrationText(result.ok ? 'Execution complete · Runtime telemetry online' : 'Execution stopped unexpectedly');
+    setEyeMode(result.ok ? 'success' : 'error');
+    focusSection('runtime');
+  } catch (error) {
+    const err = error as ApiError;
+    const payload = (err.payload ?? {}) as Partial<RunResponse>;
+
+    if (payload && typeof payload === 'object') {
       setAssembleResult(null);
-      setRunResult(result);
-      setActiveArtifact(result.artifacts.trace ? 'trace' : Object.keys(result.artifacts)[0] ?? 'trace');
-      pushTerminal(result.message);
-      pushTerminal(`Halt reason: ${result.parsed.haltReason}`);
-      if (result.stderr) pushTerminal(result.stderr);
-      if (result.stdout) pushTerminal(result.stdout);
-      setCelebrationText(result.ok ? 'Execution complete · Runtime telemetry online' : 'Execution stopped unexpectedly');
-      setEyeMode(result.ok ? 'success' : 'error');
-      focusSection('runtime');
-    } catch (error) {
-      pushTerminal(`Run failed: ${(error as Error).message}`);
-      pushTerminal('If you are on Windows, wait for the first engine build to finish or install g++ before retrying.');
-      setCelebrationText('Execution failed');
-      setEyeMode('error');
-      focusSection('runtime');
-    } finally {
-      setBusy(false);
-      setPhase(null);
-      setTimeout(() => setEyeMode('idle'), 900);
+      setRunResult(payload as RunResponse);
+
+      if (payload.artifacts?.trace) {
+        setActiveArtifact('trace');
+      } else if (payload.artifacts?.dump) {
+        setActiveArtifact('dump');
+      } else if (payload.artifacts?.log) {
+        setActiveArtifact('log');
+      } else if (payload.artifacts && Object.keys(payload.artifacts).length > 0) {
+        setActiveArtifact(Object.keys(payload.artifacts)[0]);
+      }
     }
+
+    pushTerminal(`Run failed: ${payload.message || err.message}`);
+    if (payload.stdout) pushTerminal(payload.stdout);
+    if (payload.stderr) pushTerminal(payload.stderr);
+    if (payload.parsed?.haltReason) {
+      pushTerminal(`Halt reason: ${payload.parsed.haltReason}`);
+    }
+
+    setCelebrationText('Execution failed');
+    setEyeMode('error');
+    focusSection('runtime');
+  } finally {
+    setBusy(false);
+    setPhase(null);
+    setTimeout(() => setEyeMode('idle'), 900);
   }
+}
 
   return (
     <div className="app-shell">
@@ -261,26 +310,44 @@ export default function App() {
       />
 
       <main className="workspace-grid">
-        <section ref={editorRef} className={`left-stack ${spotlight === 'editor' ? 'spotlight-section' : ''}`}>
-          <EditorPanel
-            code={code}
-            filename={filename}
-            onCodeChange={setCode}
-            onFilenameChange={setFilename}
-            currentLine={currentStep?.pc}
-          />
-          <ConsolePanel lines={terminalLines} phase={phase} />
-        </section>
+  <section
+    ref={editorRef}
+    className={`left-stack ${spotlight === 'editor' ? 'spotlight-section' : ''}`}
+  >
+    <EditorPanel
+      code={code}
+      filename={filename}
+      onCodeChange={setCode}
+      onFilenameChange={setFilename}
+      currentLine={currentStep?.pc}
+    />
+    <ConsolePanel
+      lines={terminalLines}
+      phase={phase}
+      stderr={runResult?.stderr ?? assembleResult?.stderr}
+      diagnostics={assembleResult?.diagnostics}
+    />
+  </section>
 
-        <section ref={runtimeRef} className={`right-stack ${spotlight === 'runtime' ? 'spotlight-section' : ''}`}>
-          <RegistersPanel registers={liveRegisters} currentStep={currentStepIndex} hasRun={Boolean(runResult)} />
-          <SampleDrawer samples={samples} onPick={(sample) => {
-            loadSample(sample);
-            focusSection('editor');
-          }} />
-          <MemoryPanel memory={runResult?.parsed.memory ?? []} />
-        </section>
-      </main>
+  <section
+    ref={runtimeRef}
+    className={`right-stack ${spotlight === 'runtime' ? 'spotlight-section' : ''}`}
+  >
+    <RegistersPanel
+      registers={liveRegisters}
+      currentStep={currentStepIndex}
+      hasRun={Boolean(runResult)}
+    />
+    <SampleDrawer
+      samples={samples}
+      onPick={(sample) => {
+        loadSample(sample);
+        focusSection('editor');
+      }}
+    />
+    <MemoryPanel memory={runResult?.parsed.memory ?? []} />
+  </section>
+</main>
 
       <div ref={artifactsRef} className={spotlight === 'artifacts' ? 'spotlight-section' : ''}>
         <ArtifactsPanel

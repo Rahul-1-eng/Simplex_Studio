@@ -40,6 +40,11 @@ export type MemoryRow = {
   value: string;
 };
 
+export type ArtifactMap = Partial<Record<
+  'log' | 'lst' | 'sym' | 'int' | 'o' | 'bin' | 'trace' | 'dump',
+  string
+>>;
+
 export type AssembleResponse = {
   ok: boolean;
   message: string;
@@ -47,7 +52,7 @@ export type AssembleResponse = {
   stdout: string;
   stderr: string;
   diagnostics: string;
-  artifacts: Record<string, string>;
+  artifacts: ArtifactMap;
   parsed: {
     symbols: SymbolRow[];
     listing: ListingRow[];
@@ -61,7 +66,7 @@ export type RunResponse = {
   outputPrefix: string;
   stdout: string;
   stderr: string;
-  artifacts: Record<string, string>;
+  artifacts: ArtifactMap;
   parsed: {
     trace: TraceStep[];
     haltReason: string;

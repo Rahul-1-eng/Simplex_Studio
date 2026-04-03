@@ -541,3 +541,93 @@ th { position: sticky; top: 0; background: rgba(9, 13, 32, 0.96); }
   .eye-shell { width: 136px; height: 136px; }
   .eye { width: 112px; height: 68px; }
 }
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.editor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(18, 29, 66, 0.88);
+  border: 1px solid rgba(120, 170, 255, 0.18);
+  color: #dbe8ff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.editor-chip.runtime {
+  border-color: rgba(79, 209, 197, 0.35);
+  color: #bdfaf2;
+}
+
+.editor-chip.danger {
+  border-color: rgba(255, 104, 138, 0.4);
+  color: #ffd3dc;
+  background: rgba(63, 14, 28, 0.82);
+}
+
+.editor-frame {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 18px 40px rgba(0,0,0,0.22);
+}
+
+.hint-line-error {
+  border-color: rgba(255, 104, 138, 0.35);
+  background: linear-gradient(180deg, rgba(72, 16, 31, 0.35), rgba(48, 10, 21, 0.28));
+  color: #ffd7df;
+}
+
+.editor-line-runtime {
+  background: linear-gradient(90deg, rgba(72, 193, 255, 0.16), rgba(72, 193, 255, 0.04));
+}
+
+.editor-line-error {
+  background: linear-gradient(90deg, rgba(255, 84, 112, 0.18), rgba(255, 84, 112, 0.05));
+}
+
+.editor-glyph-runtime {
+  background: radial-gradient(circle, rgba(72, 193, 255, 0.9), rgba(72, 193, 255, 0.15));
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 999px;
+  margin-left: 6px;
+  margin-top: 6px;
+}
+
+.editor-glyph-error {
+  background: radial-gradient(circle, rgba(255, 84, 112, 0.95), rgba(255, 84, 112, 0.2));
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 999px;
+  margin-left: 6px;
+  margin-top: 6px;
+}
+
+.editor-line-decoration-runtime {
+  border-left: 3px solid rgba(72, 193, 255, 0.85);
+}
+
+.editor-line-decoration-error {
+  border-left: 3px solid rgba(255, 84, 112, 0.92);
+}
+
+@media (max-width: 720px) {
+  .editor-toolbar {
+    justify-content: flex-start;
+  }
+
+  .editor-chip {
+    width: 100%;
+    justify-content: center;
+  }
+}
