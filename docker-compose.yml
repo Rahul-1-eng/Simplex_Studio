@@ -1,0 +1,5 @@
+services:
+  simplex-studio:
+    build: .
+    ports:
+      - "8787:8787"

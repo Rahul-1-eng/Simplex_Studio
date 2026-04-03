@@ -1,0 +1,12 @@
+bin/
+outputs/
+*.exe
+*.o
+*.obj
+*.bin
+*.trace
+*.dump
+*.log
+*.lst
+*.int
+*.sym

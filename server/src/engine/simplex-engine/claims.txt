@@ -1,0 +1,29 @@
+SIMPLEX Assembler + Emulator Mini Project Claims
+Author: Rahul Kumar Sahoo
+User ID: 2401CS09
+
+1. Two-pass assembler implemented.
+2. Extended SIMPLEX opcode handling implemented.
+3. Labels supported.
+4. Branch-like instructions use displacement encoding.
+5. Direct-value label resolution used for non-branch instructions.
+6. Decimal, octal, and hexadecimal numbers supported.
+7. Duplicate labels detected.
+8. Undefined labels detected.
+9. Unknown mnemonics detected.
+10. Missing operands detected.
+11. Unexpected operands detected.
+12. Invalid label names detected.
+13. Extra tokens after operand detected.
+14. Intermediate file generated.
+15. Listing file generated.
+16. Symbol table generated.
+17. Text object file generated.
+18. Binary object file generated.
+19. Log/diagnostic file generated.
+20. SET pseudo-instruction included.
+21. Emulator loads text object file.
+22. Emulator produces execution trace.
+23. Emulator produces memory dump.
+24. Emulator has errant-program protection.
+25. Required tests and extra sample programs are included.
